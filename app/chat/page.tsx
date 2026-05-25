@@ -9,7 +9,7 @@ import {
 
 import app from "next/app";
 
-import { useEffect } from "react";
+
 import { useRouter } from "next/navigation";
 
 interface Message {
