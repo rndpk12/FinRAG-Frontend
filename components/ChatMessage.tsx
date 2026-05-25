@@ -5,8 +5,8 @@ import { useState } from 'react';
 type Message = {
   role: "user" | "assistant";
   content: string;
+  sources?: string[];
 };
-
 
 export default function ChatMessage({ message }: { message: Message }) {
   const [showSources, setShowSources] = useState(false);
