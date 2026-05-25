@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Message } from '@/app/page';
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 
 export default function ChatMessage({ message }: { message: Message }) {
   const [showSources, setShowSources] = useState(false);
