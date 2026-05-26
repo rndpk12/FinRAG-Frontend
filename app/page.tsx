@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SignInButton, SignUpButton, useAuth } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/react"
 
 const techStack = [
   { name: "Next.js", role: "Frontend Framework" },
