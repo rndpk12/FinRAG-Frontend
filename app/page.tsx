@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { SignInButton, SignUpButton, useAuth } from "@clerk/nextjs";
+
 
 
 const techStack = [
@@ -99,13 +99,21 @@ function FadeIn({
 }
 
 export default function FinRAGPage() {
+
+  const [showWaitlist, setShowWaitlist] = useState(false);
+
+const [waitlistForm, setWaitlistForm] = useState({
+  name: "",
+  email: "",
+});
+
+const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const router = useRouter();
-  const { isSignedIn, isLoaded } = useAuth();
+
   const [scrolled, setScrolled] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [showSignUp, setShowSignUp] = useState(false);
-  const [signUpForm, setSignUpForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
-  const [signUpError, setSignUpError] = useState("");
+  
+
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -267,46 +275,30 @@ export default function FinRAGPage() {
 
           {/* Auth buttons */}
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {!isLoaded ? (
-              // Still loading — render nothing to avoid flash
-              <div style={{ width: 160 }} />
-            ) : isSignedIn ? (
-              <button
-                className="btn-primary"
-                style={{ padding: "10px 22px", fontSize: 14 }}
-                onClick={() => router.push("/chat")}
-              >
-                Go to Chat
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            ) : (
-              <>
-                <SignInButton mode="modal">
-                  <button
-                    style={{
-                      background: "none", border: "1.5px solid #e0e0e0", cursor: "pointer",
-                      fontSize: 14, fontWeight: 600, color: "#333", fontFamily: "inherit",
-                      padding: "9px 20px", borderRadius: 100, transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#000"; (e.currentTarget as HTMLButtonElement).style.color = "#000"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#e0e0e0"; (e.currentTarget as HTMLButtonElement).style.color = "#333"; }}
-                  >
-                    Sign In
-                  </button>
-                </SignInButton>
+  <button
+    style={{
+      background: "none",
+      border: "1.5px solid #e0e0e0",
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#333",
+      padding: "9px 20px",
+      borderRadius: 100,
+    }}
+    onClick={() => router.push("/login")}
+  >
+    Sign In
+  </button>
 
-                <button
-                  className="btn-primary"
-                  style={{ padding: "10px 22px", fontSize: 14 }}
-                  onClick={() => { setSignUpError(""); setSignUpForm({ name: "", email: "", password: "", confirmPassword: "" }); setShowSignUp(true); }}
-                >
-                  Create Account
-                </button>
-              </>
-            )}
-          </div>
+  <button
+    className="btn-primary"
+    style={{ padding: "10px 22px", fontSize: 14 }}
+    onClick={() => router.push("/signup")}
+  >
+    Create Account
+  </button>
+</div>
         </div>
       </header>
 
@@ -568,111 +560,7 @@ export default function FinRAGPage() {
         </FadeIn>
       </section>
 
-      {/* ── CREATE ACCOUNT MODAL ── */}
-      {showSignUp && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 1000,
-            background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "20px",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowSignUp(false); }}
-        >
-          <div style={{
-            background: "#fff", borderRadius: 24, padding: "48px 44px",
-            width: "100%", maxWidth: 460,
-            boxShadow: "0 32px 80px rgba(0,0,0,0.18)",
-            position: "relative",
-          }}>
-            {/* Close */}
-            <button
-              onClick={() => setShowSignUp(false)}
-              style={{
-                position: "absolute", top: 20, right: 20,
-                background: "#f5f5f5", border: "none", borderRadius: "50%",
-                width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", fontSize: 18, color: "#888", fontFamily: "inherit",
-              }}
-            >×</button>
-
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <div style={{ width: 32, height: 32, background: "#000", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: 14 }}>F</span>
-              </div>
-              <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em" }}>FinRAG</span>
-            </div>
-            <h2 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-0.03em", marginBottom: 6 }}>Welcome to FinRAG</h2>
-            <p style={{ fontSize: 14, color: "#888", marginBottom: 32 }}>Create your account to get started</p>
-
-            {/* Form */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {[
-                { label: "Full Name", key: "name", type: "text", placeholder: "John Doe" },
-                { label: "Email Address", key: "email", type: "email", placeholder: "you@example.com" },
-                { label: "Password", key: "password", type: "password", placeholder: "Min. 8 characters" },
-                { label: "Confirm Password", key: "confirmPassword", type: "password", placeholder: "Repeat your password" },
-              ].map(({ label, key, type, placeholder }) => (
-                <div key={key}>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#333" }}>{label}</label>
-                  <input
-                    type={type}
-                    placeholder={placeholder}
-                    value={signUpForm[key as keyof typeof signUpForm]}
-                    onChange={(e) => setSignUpForm((prev) => ({ ...prev, [key]: e.target.value }))}
-                    style={{
-                      width: "100%", padding: "12px 16px",
-                      border: "1.5px solid #e5e5e5", borderRadius: 12,
-                      fontSize: 14, fontFamily: "inherit", outline: "none",
-                      transition: "border-color 0.2s", color: "#000", background: "#fafafa",
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#000")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "#e5e5e5")}
-                  />
-                </div>
-              ))}
-
-              {signUpError && (
-                <p style={{ fontSize: 13, color: "#e53e3e", background: "#fff5f5", border: "1px solid #fed7d7", borderRadius: 8, padding: "10px 14px" }}>
-                  {signUpError}
-                </p>
-              )}
-
-              <button
-                className="btn-primary"
-                style={{ width: "100%", justifyContent: "center", marginTop: 8, fontSize: 15, padding: "14px" }}
-                onClick={() => {
-                  const { name, email, password, confirmPassword } = signUpForm;
-                  if (!name.trim()) return setSignUpError("Please enter your full name.");
-                  if (!email.includes("@")) return setSignUpError("Please enter a valid email address.");
-                  if (password.length < 8) return setSignUpError("Password must be at least 8 characters.");
-                  if (password !== confirmPassword) return setSignUpError("Passwords do not match.");
-                  setShowSignUp(false);
-                  router.push("/chat");
-                }}
-              >
-                Create Account
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-
-              <p style={{ textAlign: "center", fontSize: 13, color: "#aaa" }}>
-                Already have an account?{" "}
-                <SignInButton mode="modal">
-                  <span
-                    style={{ color: "#000", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}
-                    onClick={() => setShowSignUp(false)}
-                  >
-                    Sign In
-                  </span>
-                </SignInButton>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* ── FOOTER ── */}
       <footer style={{ borderTop: "1px solid #e8e8e8", padding: "60px 32px" }}>
@@ -720,4 +608,4 @@ export default function FinRAGPage() {
       </footer>
     </div>
   );
-}
+};

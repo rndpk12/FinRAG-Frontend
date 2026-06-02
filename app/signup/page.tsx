@@ -88,7 +88,7 @@ export default function SignupPage() {
           Already have an account?{" "}
           <span
             className="underline cursor-pointer"
-            onClick={() => router.push("/auth/login")}
+            onClick={() => router.push("/login")}
           >
             Login
           </span>

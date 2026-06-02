@@ -7,7 +7,7 @@ import {
   useCallback
 } from "react";
 
-import app from "next/app";
+
 
 
 import { useRouter } from "next/navigation";
@@ -68,14 +68,7 @@ const QUICK_PROMPTS = [
   },
 ];
 
-const MOCK_HISTORY: HistoryItem[] = [
-  { id: "h1", title: "NVIDIA Q1 2025 earnings", preview: "Revenue beat by 12%, data center..." },
-  { id: "h2", title: "AI semiconductor outlook", preview: "Demand for H100 chips remains..." },
-  { id: "h3", title: "Fed rate impact on bonds", preview: "Duration risk increases as yield..." },
-  { id: "h4", title: "Tesla vs BYD analysis", preview: "Market share in China continues..." },
-  { id: "h5", title: "S&P 500 sector rotation", preview: "Energy and financials leading..." },
-  { id: "h6", title: "Inflation data breakdown", preview: "Core CPI came in at 3.2% YoY..." },
-];
+
 
 function parseMarkdown(text: string): string {
   return text
@@ -138,8 +131,9 @@ export default function ChatPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [charCount, setCharCount] = useState(0);
-  const [historyItems] = useState<HistoryItem[]>(MOCK_HISTORY);
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [chatId, setChatId] = useState<number | null>(null);
   const [activeHistory, setActiveHistory] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(true);
@@ -174,6 +168,31 @@ export default function ChatPage() {
     ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
   }, [query]);
 
+  useEffect(() => {
+
+  const loadHistory = async () => {
+
+    try {
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/sessions/1`
+      );
+
+      const data = await response.json();
+
+      setHistoryItems(data.sessions || []);
+
+    } catch (err) {
+
+      console.error("Failed to load history", err);
+
+    }
+  };
+
+  loadHistory();
+
+}, []);
+
   const sendMessage = useCallback(
   async (text?: string) => {
 
@@ -192,22 +211,16 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
-
-    // =====================================
-    // EMPTY ASSISTANT MESSAGE
-    // =====================================
-
     const assistantId = crypto.randomUUID();
 
-    const assistantMsg: Message = {
-      id: assistantId,
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-    };
+const assistantMsg: Message = {
+  id: assistantId,
+  role: "assistant",
+  content: "",
+  timestamp: new Date(),
+};
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+   setMessages((prev) => [...prev, userMsg, assistantMsg]);
 
     setQuery("");
     setCharCount(0);
@@ -220,10 +233,10 @@ export default function ChatPage() {
     try {
 
       // =====================================
-      // STREAM REQUEST
-      // =====================================
+// STREAM REQUEST
+// =====================================
 
-      const response = await fetch(
+const response = await fetch(
   `${process.env.NEXT_PUBLIC_API_URL}/chat-stream`,
   {
     method: "POST",
@@ -237,42 +250,43 @@ export default function ChatPage() {
   }
 );
 
-if (!response.body) {
-  throw new Error("No response body");
+if (!response.ok) {
+  throw new Error(`HTTP error! status: ${response.status}`);
 }
 
+const data = await response.json();
+
+setMessages((prev) => {
+
+  const updated = [...prev];
+
+  updated[updated.length - 1] = {
+    ...updated[updated.length - 1],
+    content: data.answer || "No response received.",
+  };
+
+  return updated;
+
+});
+
 // =====================================
-// STREAM READER
+// REFRESH HISTORY
 // =====================================
 
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
+try {
 
-let assistantMessage = "";
+  const historyResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/sessions/1`
+  );
 
-while (true) {
+  const historyData = await historyResponse.json();
 
-  const { done, value } = await reader.read();
+  setHistoryItems(historyData.sessions || []);
 
-  if (done) break;
+} catch (err) {
 
-  const chunk = decoder.decode(value);
+  console.error("Failed to refresh history:", err);
 
-  assistantMessage += chunk;
-
-  setMessages((prev) => {
-
-    const updated = [...prev];
-
-    // update LAST assistant message
-    updated[updated.length - 1] = {
-      ...updated[updated.length - 1],
-      content: assistantMessage,
-    };
-
-    return updated;
-
-  });
 }
 
 } catch (error) {
@@ -994,16 +1008,54 @@ while (true) {
                 <div className="history-new-sub">Start a fresh session</div>
               </div>
             </div>
-            {historyItems.map((item) => (
-              <div
-                key={item.id}
-                className={`hist-item ${activeHistory === item.id ? "active" : ""}`}
-                onClick={() => setActiveHistory(item.id)}
-              >
-                <div className="hist-item-title">{item.title}</div>
-                <div className="hist-item-preview">{item.preview}</div>
-              </div>
-            ))}
+           {historyItems.map((item: any) => (
+  <div
+    key={item.id}
+    className={`hist-item ${
+      activeHistory === String(item.id)
+        ? "active"
+        : ""
+    }`}
+    onClick={async () => {
+
+      setActiveHistory(String(item.id));
+
+      try {
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/chat/${item.id}`
+        );
+
+        const data = await response.json();
+
+        const loadedMessages = data.messages.map(
+          (msg: any) => ({
+            id: crypto.randomUUID(),
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.created_at),
+          })
+        );
+
+        setMessages(loadedMessages);
+
+      } catch (err) {
+
+        console.error(err);
+
+      }
+
+    }}
+  >
+    <div className="hist-item-title">
+      {item.title}
+    </div>
+
+    <div className="hist-item-preview">
+      Chat #{item.id}
+    </div>
+  </div>
+))}
           </div>
         </aside>
       </div>
